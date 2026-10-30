@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>题库管理 · 危重急症刷题助手</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .mgr { display: grid; grid-template-columns: 1fr; gap: 18px; max-width: 860px; margin: 0 auto; }
+  .mgr-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px 22px; }
+  .mgr-card h2 { margin: 0 0 4px; font-size: 17px; }
+  .mgr-card .hint { font-size: 12.5px; color: var(--ink-2); margin: 0 0 14px; line-height: 1.6; }
+  .frow { margin-bottom: 12px; }
+  .frow label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; color: var(--ink); }
+  .frow label .req { color: var(--danger); }
+  .frow input[type=text], .frow textarea, .frow select {
+    width: 100%; box-sizing: border-box; font: inherit; font-size: 14px; color: var(--ink);
+    background: #fff; border: 1px solid #cfd9e0; border-radius: 9px; padding: 8px 11px; outline: none;
+  }
+  .frow input:focus, .frow textarea:focus, .frow select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(14,116,144,.12); }
+  .frow textarea { resize: vertical; min-height: 58px; }
+  .fgrid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .opts-box { border: 1px dashed #cfd9e0; border-radius: 10px; padding: 12px; background: #fafcfd; }
+  .opts-box .frow:last-child { margin-bottom: 0; }
+  .msg { font-size: 13px; padding: 9px 12px; border-radius: 9px; margin-top: 12px; display: none; line-height: 1.55; }
+  .msg.ok { display: block; background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+  .msg.err { display: block; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+  .qlist { max-height: 520px; overflow: auto; border: 1px solid #e2e8f0; border-radius: 10px; }
+  .qrow { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-bottom: 1px solid #eef2f6; font-size: 13px; }
+  .qrow:last-child { border-bottom: none; }
+  .qrow .qid { flex: none; width: 34px; color: var(--ink-2); font-weight: 700; }
+  .qrow .qmain { flex: 1; min-width: 0; }
+  .qrow .qmain .qt { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .qrow .qmain .qs { color: var(--ink-2); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .qrow .qans { flex: none; font-weight: 700; color: var(--primary); }
+  .qrow .btn { flex: none; }
+  .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+  .toolbar .count { font-size: 13px; color: var(--ink-2); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar"><div class="topbar-inner">
+    <div class="brand"><span class="brand-cross">✚</span><div class="brand-text">
+      <h1>危重急症抢救流程 · 题库管理</h1><p class="brand-sub">添加 / 删除题目 → 下载 questions.js → 覆盖 data 目录</p>
+    </div></div>
+    <div class="topbar-actions">
+      <span class="stat-chip" id="chip-count">共 0 题</span>
+      <a class="btn btn-ghost btn-sm" href="index.html">← 返回刷题</a>
+    </div>
+  </div></header>
+
+  <main class="main">
+    <div class="mgr">
+      <section class="mgr-card">
+        <h2>➕ 添加题目</h2>
+        <p class="hint">选项内容<b>不用</b>加 "A. / B." 前缀，系统会自动添加。"章节/小节" 可从下拉里选已有章节再补上小节名（如：第5章 成人致命性快速性心律失常抢救流程 - 二、次级评估与救治）。</p>
+        <form id="add-form" autocomplete="off">
+          <div class="fgrid2">
+            <div class="frow">
+              <label>题型 <span class="req">*</span></label>
+              <select id="f-type">
+                <option value="single_choice">常规单选题</option>
+                <option value="case_analysis">病例分析单选题</option>
+              </select>
+            </div>
+            <div class="frow">
+              <label>正确选项 <span class="req">*</span></label>
+              <select id="f-answer">
+                <option>A</option><option>B</option><option>C</option><option>D</option>
+              </select>
+            </div>
+          </div>
+          <div class="frow">
+            <label>章节 / 小节（知识点定位）<span class="req">*</span></label>
+            <input type="text" id="f-kp" list="kp-list" placeholder="例如：第5章 成人致命性快速性心律失常抢救流程 - 二、次级评估与救治">
+            <datalist id="kp-list"></datalist>
+          </div>
+          <div class="frow" id="row-case" style="display:none">
+            <label>临床情景（病例题必填）<span class="req">*</span></label>
+            <textarea id="f-case" placeholder="患者情况描述，如：男性，68岁，有高血压及冠心病史。夜间突发呼吸困难……"></textarea>
+          </div>
+          <div class="frow">
+            <label>题干 <span class="req">*</span></label>
+            <textarea id="f-question" placeholder="题目问题"></textarea>
+          </div>
+          <div class="frow">
+            <label>四个选项 <span class="req">*</span></label>
+            <div class="opts-box">
+              <div class="frow"><input type="text" id="f-opt0" placeholder="A 选项内容"></div>
+              <div class="frow"><input type="text" id="f-opt1" placeholder="B 选项内容"></div>
+              <div class="frow"><input type="text" id="f-opt2" placeholder="C 选项内容"></div>
+              <div class="frow"><input type="text" id="f-opt3" placeholder="D 选项内容"></div>
+            </div>
+          </div>
+          <div class="frow">
+            <label>解析（正确项依据 + 各错误项为何不对）<span class="req">*</span></label>
+            <textarea id="f-expl" placeholder="例如：C正确：原文指出……；A错误：……；B错误：……；D错误：……"></textarea>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <button type="submit" class="btn btn-primary">添加题目</button>
+            <button type="button" class="btn btn-ghost" id="btn-clear">清空表单</button>
+          </div>
+          <div class="msg" id="msg"></div>
+        </form>
+      </section>
+
+      <section class="mgr-card">
+        <h2>📚 当前题库</h2>
+        <p class="hint">删除或添加题目后，点击<b>「下载 questions.js」</b>，把下载的文件保存到 <code>危重急症刷题软件\data\</code> 目录并<b>覆盖原文件</b>，然后刷新刷题页面即可生效。题库源文件 <code>题库\题库.json</code> 也建议同步更新（可选）。</p>
+        <div class="toolbar">
+          <span class="count" id="list-count"></span>
+          <span style="flex:1"></span>
+          <button class="btn btn-primary btn-sm" id="btn-download" type="button">⬇ 下载 questions.js（覆盖 data 目录）</button>
+        </div>
+        <div class="qlist" id="qlist"></div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script src="data/questions.js"></script>
+<script>
+(function () {
+  var bank = (window.QUESTIONS || []).slice();
+  var dirty = false;
+  var $ = function (id) { return document.getElementById(id); };
+
+  function msg(text, ok) {
+    var m = $("msg");
+    m.textContent = text;
+    m.className = "msg " + (ok ? "ok" : "err");
+  }
+  function nextId() {
+    var mx = 0;
+    bank.forEach(function (q) { if (q.id > mx) mx = q.id; });
+    return mx + 1;
+  }
+  function fillKpDatalist() {
+    var seen = {}, opts = [];
+    bank.forEach(function (q) {
+      var kp = q.knowledge_point || "";
+      if (kp && !seen[kp]) { seen[kp] = 1; opts.push(kp); }
+      var head = kp.split(" - ")[0];
+      if (head && head.indexOf("第") === 0 && !seen["__h" + head]) { seen["__h" + head] = 1; opts.push(head); }
+    });
+    var dl = $("kp-list");
+    dl.innerHTML = "";
+    opts.forEach(function (v) {
+      var o = document.createElement("option"); o.value = v; dl.appendChild(o);
+    });
+  }
+  function renderList() {
+    var box = $("qlist");
+    box.innerHTML = "";
+    bank.forEach(function (q) {
+      var row = document.createElement("div");
+      row.className = "qrow";
+      var qid = document.createElement("span"); qid.className = "qid"; qid.textContent = "#" + q.id;
+      var main = document.createElement("div"); main.className = "qmain";
+      var qt = document.createElement("div"); qt.className = "qt";
+      qt.textContent = (q.type === "case_analysis" ? "【病例】" : "【单选】") + q.question;
+      var qs = document.createElement("div"); qs.className = "qs";
+      qs.textContent = q.knowledge_point + (q.case ? " ｜ 情景：" + q.case.slice(0, 40) + "…" : "");
+      main.appendChild(qt); main.appendChild(qs);
+      var ans = document.createElement("span"); ans.className = "qans"; ans.textContent = q.answer;
+      var del = document.createElement("button"); del.className = "btn btn-danger btn-sm"; del.textContent = "删除";
+      del.onclick = function () {
+        if (confirm("确定删除第 " + q.id + " 题？\n" + q.question.slice(0, 60))) {
+          bank = bank.filter(function (x) { return x.id !== q.id; });
+          dirty = true; renderList(); refreshCount();
+        }
+      };
+      row.appendChild(qid); row.appendChild(main); row.appendChild(ans); row.appendChild(del);
+      box.appendChild(row);
+    });
+  }
+  function refreshCount() {
+    $("chip-count").textContent = "共 " + bank.length + " 题";
+    $("list-count").textContent = bank.length + " 题（单选题 " +
+      bank.filter(function (q) { return q.type !== "case_analysis"; }).length +
+      " / 病例分析 " +
+      bank.filter(function (q) { return q.type === "case_analysis"; }).length + "）";
+  }
+  function stripPrefix(t) { return t.replace(/^[A-D][.、]\s*/, "").trim(); }
+
+  $("f-type").addEventListener("change", function () {
+    $("row-case").style.display = this.value === "case_analysis" ? "" : "none";
+  });
+  $("btn-clear").onclick = function () { $("add-form").reset(); $("row-case").style.display = "none"; $("msg").className = "msg"; };
+
+  $("add-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var type = $("f-type").value;
+    var kp = $("f-kp").value.trim();
+    var cs = $("f-case").value.trim();
+    var question = $("f-question").value.trim();
+    var opts = [0, 1, 2, 3].map(function (i) { return stripPrefix($("f-opt" + i).value); });
+    var answer = $("f-answer").value;
+    var expl = $("f-expl").value.trim();
+    if (!/^第\s*[0-9一二三四五六七八九十]+\s*章/.test(kp)) { msg("「章节/小节」需以 第X章 开头，例如：第5章 … - 二、次级评估与救治", false); return; }
+    if (type === "case_analysis" && !cs) { msg("病例分析题必须填写「临床情景」", false); return; }
+    if (!question) { msg("请填写题干", false); return; }
+    for (var i = 0; i < 4; i++) if (!opts[i]) { msg("第 " + "ABCD"[i] + " 个选项不能为空", false); return; }
+    if (!expl) { msg("请填写解析", false); return; }
+    var q = {
+      id: nextId(),
+      type: type,
+      question: question,
+      options: opts.map(function (t, i) { return "ABCD"[i] + ". " + t; }),
+      answer: answer,
+      explanation: expl,
+      knowledge_point: kp
+    };
+    if (type === "case_analysis") q.case = cs;
+    // 字段顺序与既有题库保持一致
+    var ordered = { id: q.id, type: q.type, question: q.question };
+    if (q.case) ordered.case = q.case;
+    ordered.options = q.options; ordered.answer = q.answer;
+    ordered.explanation = q.explanation; ordered.knowledge_point = q.knowledge_point;
+    bank.push(ordered);
+    dirty = true;
+    msg("已添加第 " + q.id + " 题。别忘了点「下载 questions.js」并覆盖 data 目录！", true);
+    $("add-form").reset(); $("row-case").style.display = "none";
+    renderList(); refreshCount();
+  });
+
+  $("btn-download").onclick = function () {
+    if (!bank.length) { alert("题库为空"); return; }
+    var js = "/* 题库数据（由 题库.json 自动生成，勿手改） */\nwindow.QUESTIONS = " +
+      JSON.stringify(bank, null, 2) + ";\n";
+    var blob = new Blob([js], { type: "application/javascript;charset=utf-8" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "questions.js";
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+    dirty = false;
+    alert("questions.js 已下载。\n\n请把下载的文件保存到：\n危重急症刷题软件\\data\\questions.js\n（覆盖原文件），然后刷新 index.html 即可生效。");
+  };
+
+  fillKpDatalist();
+  renderList();
+  refreshCount();
+})();
+</script>
+</body>
+</html>
