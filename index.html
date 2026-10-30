@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>危重急症抢救流程 · 刷题助手</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app" class="app">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <span class="brand-cross">✚</span>
+        <div class="brand-text">
+          <h1>危重急症抢救流程 · 刷题助手</h1>
+          <p class="brand-sub">《危重急症抢救流程解析及规范》何庆 · 2007</p>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <span id="stat-summary" class="stat-chip" title="已练习 / 错题数量">已练 0 · 错题 0</span>
+        <a id="btn-mgr" class="btn btn-ghost" href="add_question.html" title="添加 / 删除题目">✏️ 题库管理</a>
+        <button id="btn-home" class="btn btn-ghost" type="button">🏠 首页</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <aside class="hero-sub" role="note" style="margin:0 0 18px;padding:10px 14px;border:1px solid #bfdde8;border-radius:10px;background:#fff">学习版本：按何庆 2007 年原书编题。部分抢救流程与现行指南不同；用于原书学习，不作为临床决策依据。</aside>
+    <!-- ===================== 首页 ===================== -->
+    <section id="view-home" class="view">
+      <div class="hero">
+        <h2>开始刷题</h2>
+        <p class="hero-sub">题库共 <b id="hero-total">0</b> 题 · 常规单选 <b id="hero-single">0</b> 题 · 病例单选 <b id="hero-case">0</b> 题 · 覆盖 26 章</p>
+      </div>
+
+      <div class="mode-grid">
+        <div class="mode-card" data-mode="practice">
+          <div class="mode-icon">📖</div>
+          <h3>练习模式</h3>
+          <p>逐题作答，选完即出解析，适合系统学习</p>
+          <div class="mode-fields">
+            <label>章节范围
+              <select id="sel-practice-chapter"></select>
+            </label>
+            <label>题型
+              <select id="sel-practice-type">
+                <option value="all">全部题型</option>
+                <option value="single_choice">常规单选题</option>
+                <option value="case_analysis">病例分析单选题</option>
+              </select>
+            </label>
+            <label class="chk"><input type="checkbox" id="chk-practice-shuffle" checked> 随机打乱</label>
+            <button class="btn btn-primary" type="button" data-start="practice">开始练习 →</button>
+          </div>
+        </div>
+
+        <div class="mode-card" data-mode="exam">
+          <div class="mode-icon">⏱️</div>
+          <h3>模拟考试</h3>
+          <p>连续作答不提示答案，交卷后统一判分并复盘</p>
+          <div class="mode-fields">
+            <label>题量
+              <select id="sel-exam-count">
+                <option value="10">10 题（快速自测）</option>
+                <option value="20" selected>20 题（标准考试）</option>
+                <option value="40">40 题（强化训练）</option>
+              </select>
+            </label>
+            <label>章节范围
+              <select id="sel-exam-chapter"></select>
+            </label>
+            <label class="chk"><input type="checkbox" id="chk-exam-shuffle" checked> 随机打乱</label>
+            <button class="btn btn-primary" type="button" data-start="exam">开始考试 →</button>
+          </div>
+        </div>
+
+        <div class="mode-card" data-mode="wrong">
+          <div class="mode-icon">📕</div>
+          <h3>错题重做</h3>
+          <p>只练答错过的题，反复巩固薄弱知识点</p>
+          <div class="mode-fields">
+            <p id="wrong-count" class="muted">暂无错题</p>
+            <button class="btn btn-primary" type="button" data-start="wrong">重做错题 →</button>
+            <button class="btn btn-ghost" type="button" id="btn-clear-wrong">清空错题本</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="chapter-panel">
+        <h3>章节目录（26 章）</h3>
+        <div id="chapter-list" class="chapter-list"></div>
+      </div>
+    </section>
+
+    <!-- ===================== 答题页 ===================== -->
+    <section id="view-quiz" class="view hidden">
+      <div class="quiz-top">
+        <button class="btn btn-ghost btn-sm" type="button" id="btn-quit">✕ 退出</button>
+        <div class="progress-wrap">
+          <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
+          <span id="progress-label" class="progress-label">0 / 0</span>
+        </div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-meta">
+          <span id="q-type" class="chip chip-type">常规单选</span>
+          <span id="q-kp" class="chip chip-kp" title="知识点来源"></span>
+        </div>
+        <div id="q-text" class="q-text"></div>
+        <div id="q-options" class="q-options"></div>
+        <div id="q-feedback" class="q-feedback hidden">
+          <div id="fb-verdict" class="fb-verdict"></div>
+          <div class="fb-body">
+            <h4>📝 解析</h4>
+            <p id="fb-explanation"></p>
+            <h4>📚 知识点溯源</h4>
+            <p id="fb-kp"></p>
+          </div>
+        </div>
+        <div class="q-actions">
+          <button id="btn-prev" class="btn btn-ghost" type="button">← 上一题</button>
+          <button id="btn-confirm" class="btn btn-primary" type="button">确认答案</button>
+          <button id="btn-next" class="btn btn-primary" type="button">下一题 →</button>
+        </div>
+      </div>
+
+      <!-- 答题卡（考试模式） -->
+      <div id="exam-sheet" class="exam-sheet hidden">
+        <h4>答题卡</h4>
+        <div id="exam-sheet-grid" class="sheet-grid"></div>
+        <button class="btn btn-danger" type="button" id="btn-submit">📮 交卷</button>
+      </div>
+    </section>
+
+    <!-- ===================== 结果页 ===================== -->
+    <section id="view-result" class="view hidden">
+      <div class="result-hero">
+        <div class="score-ring">
+          <svg viewBox="0 0 120 120">
+            <circle class="ring-bg" cx="60" cy="60" r="52"></circle>
+            <circle id="ring-fill" class="ring-fill" cx="60" cy="60" r="52"></circle>
+          </svg>
+          <div class="score-num"><b id="score-pct">0</b>%</div>
+        </div>
+        <h2 id="result-title">考试完成</h2>
+        <p id="result-sub" class="muted"></p>
+        <div class="result-stats">
+          <div class="rstat"><b id="rs-total">0</b><span>总题数</span></div>
+          <div class="rstat good"><b id="rs-right">0</b><span>答对</span></div>
+          <div class="rstat bad"><b id="rs-wrong">0</b><span>答错</span></div>
+          <div class="rstat"><b id="rs-time">0s</b><span>用时</span></div>
+        </div>
+        <div class="result-actions">
+          <button class="btn btn-primary" type="button" id="btn-review">📋 逐题复盘</button>
+          <button class="btn btn-ghost" type="button" id="btn-again">↻ 再来一次</button>
+          <button class="btn btn-ghost" type="button" id="btn-home2">🏠 回首页</button>
+        </div>
+      </div>
+      <div id="review-list" class="review-list hidden"></div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    题库依据《危重急症抢救流程解析及规范》（何庆，2007）整理 · 仅供医学学习参考，不作为临床决策依据
+  </footer>
+</div>
+
+<script src="data/questions.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
